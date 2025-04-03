@@ -10,13 +10,13 @@ A FastAPI-powered REST API for Graph-based Retrieval Augmented Generation (Graph
 - **Detailed Debugging**: Access full retrieval results, graph context and entity relationships
 - **Configuration API**: Tune system parameters via API
 - **Containerized Deployment**: Easy deployment with Docker and Docker Compose
-- **Multi-Model Support**: Works with OpenAI or Ollama models
+- **Multi-Model Support**: Works with OpenAI, Anthropic, or Ollama models
 
 ## Containerized Deployment
 
 This project is fully containerized for easy deployment and includes:
 
-- GraphRAG API (Python 3.11, FastAPI)
+- GraphRAG API (Python, FastAPI)
 - Neo4j (Graph Database)
 - Qdrant (Vector Database)
 - Ollama (Local LLM Provider)
@@ -24,7 +24,7 @@ This project is fully containerized for easy deployment and includes:
 ### Prerequisites
 
 - Docker and Docker Compose
-- If using OpenAI: An OpenAI API key
+- If using OpenAI or Anthropic: An API key
 - ~10GB disk space for Docker images and volumes
 
 ### Quick Start
@@ -35,39 +35,76 @@ This project is fully containerized for easy deployment and includes:
    cd graphrag
    ```
 
-2. Start all services:
+2. Configure your environment:
    ```bash
-   ./run-docker.sh up
+   cp .env.example .env
+   # Edit .env with your preferred settings
    ```
 
-3. Access the API:
+3. Start all services:
+   ```bash
+   docker compose up -d
+   ```
+
+4. Access the API:
    - API: http://localhost:8000
    - API Docs: http://localhost:8000/docs
    - Neo4j Browser: http://localhost:7474 (user: neo4j, pass: password)
    - Qdrant Dashboard: http://localhost:6333/dashboard
 
-### Configuration Options
+### Environment Configuration
 
-You can customize the deployment using environment variables:
+The system uses environment variables for configuration:
 
-```bash
-# Use OpenAI instead of Ollama
-DEFAULT_MODEL_PROVIDER=openai OPENAI_API_KEY=your-key ./run-docker.sh up
+1. Create a `.env` file based on the provided `.env.example`
+2. Docker Compose will automatically load variables from this file
+3. Container-specific variables (like host connections) are automatically overridden in docker-compose.yml
 
-# Change the Ollama model
-OLLAMA_INFERENCE_MODEL=llama3 ./run-docker.sh up
+#### Configuration Options
+
+Important configuration variables:
+
+```
+# Model Provider Options
+DEFAULT_MODEL_PROVIDER=ollama  # options: 'openai', 'anthropic', 'ollama'
+
+# OpenAI Configuration
+OPENAI_API_KEY=your_key_here
+OPENAI_INFERENCE_MODEL=gpt-3.5-turbo
+OPENAI_EMBEDDING_MODEL=text-embedding-ada-002
+
+# Anthropic Configuration
+ANTHROPIC_API_KEY=your_key_here
+
+# Ollama Configuration
+OLLAMA_INFERENCE_MODEL=qwen2.5:3b
+OLLAMA_EMBEDDING_MODEL=nomic-embed-text
+
+# Processing Settings
+PARALLEL_PROCESSING=true
+MAX_WORKERS=4
+CHUNK_SIZE=5000
 ```
 
 ### Container Management
 
-The included `run-docker.sh` script makes management easy:
+Basic Docker Compose commands:
 
 ```bash
-./run-docker.sh status    # Check container status
-./run-docker.sh logs      # View all logs
-./run-docker.sh api-logs  # View only API logs
-./run-docker.sh down      # Stop all containers
-./run-docker.sh restart   # Restart all containers
+# Start services
+docker compose up -d
+
+# View logs
+docker compose logs -f
+
+# Check status
+docker compose ps
+
+# Stop services
+docker compose down
+
+# Restart services
+docker compose restart
 ```
 
 ### Persistent Storage
@@ -75,6 +112,7 @@ The included `run-docker.sh` script makes management easy:
 The Docker setup includes persistent volumes for:
 
 - `neo4j_data`: Graph database data
+- `neo4j_logs`: Neo4j logs
 - `qdrant_data`: Vector database data
 - `ollama_data`: Downloaded LLM models
 - Local directory mappings:
@@ -83,12 +121,12 @@ The Docker setup includes persistent volumes for:
 
 ### Container Details
 
-| Container         | Image                | Ports        | Description           |
-|-------------------|----------------------|--------------|------------------------|
-| graph-rag-api     | Custom (Python 3.11) | 8000         | GraphRAG API           |
-| graph-rag-neo4j   | neo4j:5.9.0          | 7474, 7687   | Graph Database         |
-| graph-rag-qdrant  | qdrant/qdrant:v1.4.0 | 6333, 6334   | Vector Database        |
-| graph-rag-ollama  | ollama/ollama:latest | 11434        | Local LLM Provider     |
+| Container        | Image                | Ports        | Description           |
+|------------------|----------------------|--------------|------------------------|
+| graphrag-api     | Custom (Dockerfile)  | 8000         | GraphRAG API           |
+| graphrag-neo4j   | neo4j:5.9.0          | 7474, 7687   | Graph Database         |
+| graphrag-qdrant  | qdrant/qdrant:v1.13.3| 6333, 6334   | Vector Database        |
+| graphrag-ollama  | ollama/ollama:0.6.2  | 11434        | Local LLM Provider     |
 
 ## API Endpoints
 
@@ -113,10 +151,10 @@ If you prefer to run the components locally instead of with Docker:
 
 ### Prerequisites
 
-- Python 3.11+
+- Python 3.10+
 - Neo4j Database
 - Qdrant Vector Database
-- Ollama or OpenAI API access
+- Ollama or OpenAI/Anthropic API access
 
 ### Installation
 
@@ -127,46 +165,20 @@ pip install -r requirements.txt
 
 ### Configuration
 
-Create a `.env` file with your configuration:
+Create a `.env` file with your configuration (use the provided `.env.example` as a template).
+
+For local development without Docker, ensure the host settings point to your locally running services:
 
 ```
-# Database Settings
-NEO4J_URI=neo4j://localhost:7687
-NEO4J_USERNAME=neo4j
-NEO4J_PASSWORD=password
+NEO4J_URI=bolt://localhost:7687
 QDRANT_HOST=localhost
-QDRANT_PORT=6333
-COLLECTION_NAME=graphRAGstore
-
-# Model Provider Settings
-DEFAULT_MODEL_PROVIDER=ollama  # or 'openai'
-
-# OpenAI Settings (if using OpenAI)
-OPENAI_API_KEY=your_key_here
-OPENAI_INFERENCE_MODEL=gpt-3.5-turbo
-OPENAI_EMBEDDING_MODEL=text-embedding-ada-002
-OPENAI_VECTOR_DIMENSION=1536
-
-# Ollama Settings (if using Ollama)
 OLLAMA_HOST=localhost
-OLLAMA_PORT=11434
-OLLAMA_INFERENCE_MODEL=llama2
-OLLAMA_EMBEDDING_MODEL=nomic-embed-text
-OLLAMA_VECTOR_DIMENSION=768
-
-# Processing Settings
-PARALLEL_PROCESSING=true
-MAX_WORKERS=4
-BATCH_SIZE=100
-CHUNK_SIZE=5000
-USE_STREAMING=true
-REQUEST_TIMEOUT=60
 ```
 
 ### Running Locally
 
 ```bash
-uvicorn api:app --reload
+uvicorn app.main:app --reload
 ```
 
 ## International Language Support
