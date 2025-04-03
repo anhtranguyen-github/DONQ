@@ -1,0 +1,77 @@
+services:
+  neo4j:
+    image: neo4j:5.9.0
+    container_name: graphrag-neo4j
+    ports:
+      - "7474:7474"  # HTTP
+      - "7687:7687"  # Bolt
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+    restart: unless-stopped
+    networks:
+      - graphrag-network
+
+  qdrant:
+    image: qdrant/qdrant:v1.13.3
+    container_name: graphrag-qdrant
+    ports:
+      - "6333:6333"  # REST API
+      - "6334:6334"  # gRPC
+    volumes:
+      - qdrant_data:/qdrant/storage
+    restart: unless-stopped
+    networks:
+      - graphrag-network
+
+  ollama:
+    image: ollama/ollama:0.6.2
+    container_name: graphrag-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+    networks:
+      - graphrag-network
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: graphrag-api
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      # Docker-specific overrides for service connections
+      - NEO4J_URI=neo4j://neo4j:7687
+      - NEO4J_USERNAME=neo4j
+      - NEO4J_PASSWORD=password
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+      - OLLAMA_HOST=ollama
+      - OLLAMA_PORT=11434
+      - COLLECTION_NAME=graphRAGstore
+      - PYTHONPATH=/app
+    volumes:
+      - ./uploads:/app/uploads
+      - ./logs:/app/logs
+    depends_on:
+      - neo4j
+      - qdrant
+      - ollama
+    restart: unless-stopped
+    networks:
+      - graphrag-network
+
+networks:
+  graphrag-network:
+    driver: bridge
+
+volumes:
+  neo4j_data:
+  neo4j_logs:
+  qdrant_data:
+  ollama_data: 

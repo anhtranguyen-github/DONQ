@@ -13,3 +13,7 @@ numpy>=1.25.2
 aiohttp>=3.8.5
 tokenizers>=0.14.1
 beautifulsoup4>=4.12.2
+langchain>=0.0.300
+langchain-community>=0.0.10
+docling>=0.4.3
+spacy>=3.7.1

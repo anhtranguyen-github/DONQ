@@ -46,8 +46,7 @@ query_result_*.json
 
 # Docker
 .dockerignore
-Dockerfile
-docker-compose.yml
+
 
 # Client file
 client.py

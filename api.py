@@ -617,6 +617,7 @@ async def process_file(file_path, neo4j_driver, qdrant_client, collection_name, 
         start_time = time.time()
         docling = DoclingReader()
         raw_data = docling.read_from_file_as_text(file_path)
+        print(raw_data)
         
         if not raw_data.strip():
             logger.warning(f"No data found in file {file_path}")
